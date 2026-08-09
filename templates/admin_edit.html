@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Редактирование — Watch&Read
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <a
+                class="logo"
+                href="{{ url_for('home') }}"
+            >
+                Watch&Read
+            </a>
+
+            <nav class="navigation">
+                <a href="{{ url_for('home') }}">
+                    Каталог
+                </a>
+
+                <a href="{{ url_for('library') }}">
+                    Моя медиатека
+                </a>
+
+                {% if session.get("role") == "admin" %}
+                    <a href="{{ url_for('admin') }}">
+                        Админ-панель
+                    </a>
+                {% endif %}
+
+                <span class="navigation-user">
+                    {{ session.get("username") }}
+                </span>
+
+                <a
+                    href="{{ url_for('logout') }}"
+                    onclick="return confirm(
+                        'Вы уверены, что хотите выйти из аккаунта?'
+                    );"
+                >
+                    Выйти
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container admin-edit-page">
+        <div class="page-messages">
+            {% with messages = get_flashed_messages(
+                with_categories=true
+            ) %}
+                {% for category, message in messages %}
+                    <div
+                        class="flash-message flash-{{ category }}"
+                    >
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endwith %}
+        </div>
+
+        <section class="admin-panel admin-edit-card">
+            <div class="admin-edit-heading">
+                <div>
+                    <p class="subtitle">
+                        Управление каталогом
+                    </p>
+
+                    <h1>
+                        Редактировать произведение
+                    </h1>
+                </div>
+
+                <a
+                    class="admin-back-link"
+                    href="{{ url_for('admin') }}"
+                >
+                    Назад к каталогу
+                </a>
+            </div>
+
+            <form
+                class="admin-media-form"
+                action="{{ url_for(
+                    'admin_edit_media',
+                    media_id=media_item.id
+                ) }}"
+                method="post"
+            >
+                <div class="admin-form-grid">
+                    <div class="admin-form-group">
+                        <label for="title">
+                            Название
+                        </label>
+
+                        <input
+                            id="title"
+                            name="title"
+                            type="text"
+                            maxlength="255"
+                            value="{{ media_item.title }}"
+                            required
+                        >
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="media-type">
+                            Тип
+                        </label>
+
+                        <select
+                            id="media-type"
+                            name="media_type"
+                            required
+                        >
+                            {% for media_type, label
+                               in media_type_options.items() %}
+                                <option
+                                    value="{{ media_type }}"
+                                    {% if media_item.media_type
+                                          == media_type %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="genre">
+                            Жанр
+                        </label>
+
+                        <input
+                            id="genre"
+                            name="genre"
+                            type="text"
+                            maxlength="255"
+                            value="{{ media_item.genre }}"
+                            required
+                        >
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="release-year">
+                            Год выпуска
+                        </label>
+
+                        <input
+                            id="release-year"
+                            name="release_year"
+                            type="number"
+                            min="1"
+                            max="2100"
+                            value="{{ media_item.release_year }}"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="admin-form-group">
+                    <label for="description">
+                        Описание
+                    </label>
+
+                    <textarea
+                        id="description"
+                        name="description"
+                        rows="7"
+                        required
+                    >{{ media_item.description }}</textarea>
+                </div>
+
+                <div class="admin-edit-controls">
+                    <button
+                        class="admin-submit-button"
+                        type="submit"
+                    >
+                        Сохранить изменения
+                    </button>
+
+                    <a
+                        class="admin-cancel-button"
+                        href="{{ url_for('admin') }}"
+                    >
+                        Отмена
+                    </a>
+                </div>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

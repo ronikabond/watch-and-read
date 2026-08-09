@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Watch&Read — личная медиатека</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+<body class="landing-body">
+    <header class="header landing-header">
+        <div class="container">
+            <a class="logo" href="{{ url_for('home') }}">
+                Watch&Read
+            </a>
+
+            <nav class="navigation" aria-label="Основная навигация">
+                <a href="{{ url_for('catalog') }}">Каталог</a>
+
+                {% if session.get("user_id") %}
+                    <a href="{{ url_for('library') }}">
+                        Моя медиатека
+                    </a>
+
+                    {% if session.get("role") == "admin" %}
+                        <a href="{{ url_for('admin') }}">
+                            Админ-панель
+                        </a>
+                    {% endif %}
+
+                    <span class="navigation-user">
+                        {{ session.get("username") }}
+                    </span>
+                {% else %}
+                    <a href="{{ url_for('login') }}">Войти</a>
+                    <a href="{{ url_for('register') }}">Регистрация</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="landing-main">
+        <div class="container landing-layout">
+            <section class="landing-copy">
+                <p class="landing-eyebrow">
+                    Смотрите. Читайте. Запоминайте.
+                </p>
+
+                <h1>
+                    Все истории,
+                    <span>к которым хочется вернуться</span>
+                </h1>
+
+                <p class="landing-description">
+                    Собирайте фильмы, книги, сериалы, комиксы,
+                    мангу и аниме в одной аккуратной медиатеке.
+                </p>
+
+                <div class="landing-actions">
+                    <a
+                        class="landing-primary-action"
+                        href="{{ url_for('catalog') }}"
+                    >
+                        Открыть каталог
+                        <span aria-hidden="true">→</span>
+                    </a>
+
+                    {% if session.get("user_id") %}
+                        <a
+                            class="landing-secondary-action"
+                            href="{{ url_for('library') }}"
+                        >
+                            Моя медиатека
+                        </a>
+                    {% else %}
+                        <a
+                            class="landing-secondary-action"
+                            href="{{ url_for('register') }}"
+                        >
+                            Создать аккаунт
+                        </a>
+                    {% endif %}
+                </div>
+            </section>
+
+            <div class="landing-visual" aria-hidden="true">
+                <div class="landing-orbit landing-orbit-large"></div>
+                <div class="landing-orbit landing-orbit-small"></div>
+
+                <article class="landing-media-tile tile-film">
+                    <span>Смотреть</span>
+                    <strong>Кино</strong>
+                </article>
+
+                <article class="landing-media-tile tile-book">
+                    <span>Читать</span>
+                    <strong>Книги</strong>
+                </article>
+
+                <article class="landing-media-tile tile-library">
+                    <span>Сохранять</span>
+                    <strong>Истории</strong>
+                </article>
+
+                <div class="landing-center-mark">
+                    <span>W</span>
+                    <i>&amp;</i>
+                    <span>R</span>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

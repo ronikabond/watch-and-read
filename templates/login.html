@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Вход — Watch&Read</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <a class="logo" href="{{ url_for('home') }}">
+                Watch&Read
+            </a>
+
+            <nav class="navigation">
+                <a href="{{ url_for('catalog') }}">Каталог</a>
+                <a href="{{ url_for('register') }}">Регистрация</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container auth-page">
+        <section class="auth-card">
+            <p class="subtitle">С возвращением</p>
+            <h1>Вход</h1>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="post">
+                <div class="form-group">
+                    <label for="email">Электронная почта</label>
+
+                    <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        maxlength="120"
+                        value="{{ email or '' }}"
+                        autocomplete="email"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Пароль</label>
+
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        autocomplete="current-password"
+                        required
+                    >
+                </div>
+
+                <button type="submit">
+                    Войти
+                </button>
+            </form>
+
+            <p class="auth-link">
+                Ещё нет аккаунта?
+
+                <a href="{{ url_for('register') }}">
+                    Зарегистрироваться
+                </a>
+            </p>
+        </section>
+    </main>
+</body>
+</html>

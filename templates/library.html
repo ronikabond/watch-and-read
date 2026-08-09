@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Моя медиатека — Watch&Read</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <a class="logo" href="{{ url_for('home') }}">
+                Watch&Read
+            </a>
+
+            <nav class="navigation">
+                <a href="{{ url_for('catalog') }}">Каталог</a>
+
+                <a href="{{ url_for('library') }}">
+                    Моя медиатека
+                </a>
+
+                {% if session.get("role") == "admin" %}
+                    <a href="{{ url_for('admin') }}">
+                        Админ-панель
+                    </a>
+                {% endif %}
+
+                <span class="navigation-user">
+                    {{ session.get("username") }}
+                </span>
+
+                <a
+                    href="{{ url_for('logout') }}"
+                    onclick="return confirm(
+                        'Вы уверены, что хотите выйти из аккаунта?'
+                    );"
+                >
+                    Выйти
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="toast-container" class="page-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <section class="library-heading">
+            <p class="subtitle">Личная коллекция</p>
+            <h1>Моя медиатека</h1>
+
+            <p>
+                Здесь находятся произведения, которые вы добавили
+                из общего каталога.
+            </p>
+        </section>
+
+        <section>
+            <div class="media-filter-toolbar">
+                <div
+                    class="media-tabs"
+                    data-media-tabs
+                    data-grid-id="library-grid"
+                    data-empty-id="library-filter-empty"
+                >
+                    <div
+                        class="media-tabs-list"
+                        role="tablist"
+                        aria-label="Категории медиатеки"
+                    >
+                        {% for media_type, label in media_type_filters %}
+                            <button
+                                id="library-tab-{{ media_type }}"
+                                class="media-tab"
+                                type="button"
+                                role="tab"
+                                aria-controls="library-grid"
+                                aria-selected="{{ 'true' if media_type == 'all' else 'false' }}"
+                                tabindex="{{ '0' if media_type == 'all' else '-1' }}"
+                                data-media-filter="{{ media_type }}"
+                            >
+                                {{ label }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="genre-filter">
+                    <label for="library-genre-filter">
+                        Жанр
+                    </label>
+
+                    <select
+                        id="library-genre-filter"
+                        data-genre-filter
+                    >
+                        <option value="all">
+                            Все жанры
+                        </option>
+
+                        {% for genre in genre_filters %}
+                            <option value="{{ genre }}">
+                                {{ genre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div
+                id="library-grid"
+                class="media-grid media-grid-filterable"
+                data-catalog-url="{{ url_for('catalog') }}#catalog"
+                role="tabpanel"
+                aria-labelledby="library-tab-all"
+            >
+                {% for item in library_items %}
+                    <article
+                        class="media-card library-card"
+                        data-media-id="{{ item.id }}"
+                        data-media-type="{{ item.media_type }}"
+                        data-media-genre="{{ item.genre or '' }}"
+                    >
+                        <button
+                            class="library-delete-icon"
+                            type="button"
+                            data-delete-url="{{ url_for(
+                                'remove_from_library',
+                                media_id=item.id
+                            ) }}"
+                            data-title="{{ item.title }}"
+                            aria-label="Удалить «{{ item.title }}» из медиатеки"
+                            title="Удалить из медиатеки"
+                        >
+                            <svg
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    d="
+                                        M4 7H20
+                                        M9 7V4H15V7
+                                        M7 7L8 20H16L17 7
+                                        M10 11V16
+                                        M14 11V16
+                                    "
+                                />
+                            </svg>
+                        </button>
+                        <div class="cover">
+                            {% if item.cover_filename %}
+                                <img
+                                    src="{{ url_for(
+                                        'static',
+                                        filename='covers/' ~ item.cover_filename
+                                    ) }}"
+                                    alt=""
+                                    width="600"
+                                    height="900"
+                                    loading="lazy"
+                                >
+                            {% else %}
+                                <span>Обложка скоро появится</span>
+                            {% endif %}
+                        </div>
+
+                        <p class="media-type">
+                            {{ item.media_type_name }}
+                        </p>
+
+                        <h3>{{ item.title }}</h3>
+
+                        <p>
+                            {% if item.genre %}
+                                {{ item.genre }}
+                            {% else %}
+                                Жанр не указан
+                            {% endif %}
+
+                            ·
+
+                            {% if item.release_year %}
+                                {{ item.release_year }}
+                            {% else %}
+                                Год не указан
+                            {% endif %}
+                        </p>
+
+                        <div class="library-view-mode">
+                            <div class="library-information">
+                                <p>
+                                    <strong>Статус:</strong>
+
+                                    <span class="library-status-text">
+                                        {{ item.status_name }}
+                                    </span>
+                                </p>
+
+                                <div class="readonly-rating-row">
+                                    <strong>Оценка:</strong>
+
+                                    <div class="readonly-rating">
+                                        <div
+                                            class="readonly-stars"
+                                            aria-label="{{ item.rating_text }}"
+                                        >
+                                            <span class="readonly-stars-empty">
+                                                ★★★★★
+                                            </span>
+
+                                            <span
+                                                class="readonly-stars-fill"
+                                                data-rating-percent="{{ item.rating_percent }}"
+                                            >
+                                                ★★★★★
+                                            </span>
+                                        </div>
+
+                                        <span class="library-rating-text">
+                                            {{ item.rating_text }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                class="library-edit-button"
+                                type="button"
+                            >
+                                Редактировать
+                            </button>
+                        </div>
+
+
+                        <form
+                            class="library-update-form is-hidden"
+                            method="post"
+                            action="{{ url_for(
+                                'update_library_item',
+                                media_id=item.id
+                            ) }}"
+                            data-original-status="{{ item.status }}"
+                            data-original-rating="{{ item.rating or '' }}"
+                        >
+                            <div class="library-form-group">
+                                <label for="status-{{ item.id }}">
+                                    Статус
+                                </label>
+
+                                <select
+                                    id="status-{{ item.id }}"
+                                    name="status"
+                                >
+                                    {% for status_value, status_name
+                                        in status_options.items() %}
+
+                                        <option
+                                            value="{{ status_value }}"
+                                            {% if item.status == status_value %}
+                                                selected
+                                            {% endif %}
+                                        >
+                                            {{ status_name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="library-form-group">
+                                <label id="rating-label-{{ item.id }}">
+                                    Оценка
+                                </label>
+
+                                <div
+                                    class="star-rating"
+                                    data-media-id="{{ item.id }}"
+                                >
+                                    <input
+                                        class="rating-hidden-input"
+                                        name="rating"
+                                        type="hidden"
+                                        value="{{ item.rating or '' }}"
+                                    >
+
+                                    <div
+                                        class="star-rating-control"
+                                        role="slider"
+                                        tabindex="0"
+                                        aria-labelledby="rating-label-{{ item.id }}"
+                                        aria-valuemin="0"
+                                        aria-valuemax="5"
+                                        aria-valuenow="0"
+                                        aria-valuetext="Без оценки"
+                                    >
+                                        {% for star_number in range(1, 6) %}
+                                            <span
+                                                class="rating-star"
+                                                data-star="{{ star_number }}"
+                                                aria-hidden="true"
+                                            >
+                                                <span class="rating-star-empty">
+                                                    ★
+                                                </span>
+
+                                                <span class="rating-star-fill">
+                                                    ★
+                                                </span>
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+
+                                    <div class="rating-details">
+                                        <span class="rating-value">
+                                            Без оценки
+                                        </span>
+
+                                        <button
+                                            class="rating-clear-button"
+                                            type="button"
+                                        >
+                                            Сбросить
+                                        </button>
+                                    </div>
+
+                                    <small>
+                                        Можно выбрать половину звезды
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="library-form-actions">
+                                <button
+                                    class="library-save-button"
+                                    type="submit"
+                                    hidden
+                                >
+                                    Сохранить изменения
+                                </button>
+
+                                <button
+                                    class="library-cancel-button"
+                                    type="button"
+                                >
+                                    Отмена
+                                </button>
+                            </div>
+                        </form>
+                    </article>
+                {% else %}
+                    <div class="empty-state">
+                        <h2>Медиатека пока пуста</h2>
+
+                        <p>
+                            Перейдите в каталог и добавьте первое
+                            произведение.
+                        </p>
+
+                        <a
+                            class="media-action-link"
+                            href="{{ url_for('catalog') }}#catalog"
+                        >
+                            Открыть каталог
+                        </a>
+                {% endfor %}
+
+                <p
+                    id="library-filter-empty"
+                    class="media-filter-empty is-hidden"
+                    role="status"
+                ></p>
+            </div>
+        </section>
+
+    <div
+        id="delete-modal"
+        class="delete-modal is-hidden"
+        aria-hidden="true"
+    >
+        <section
+            class="delete-modal-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-modal-title"
+            aria-describedby="delete-modal-description"
+        >
+            <button
+                id="delete-modal-close"
+                class="delete-modal-close"
+                type="button"
+                aria-label="Закрыть окно"
+            >
+                ×
+            </button>
+
+            <div class="delete-modal-icon">
+                <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                >
+                    <path
+                        d="
+                            M4 7H20
+                            M9 7V4H15V7
+                            M7 7L8 20H16L17 7
+                            M10 11V16
+                            M14 11V16
+                        "
+                    />
+                </svg>
+            </div>
+
+            <h2 id="delete-modal-title">
+                Удалить из медиатеки?
+            </h2>
+
+            <p id="delete-modal-description">
+                Произведение
+
+                <strong>
+                    «<span id="delete-modal-item-title"></span>»
+                </strong>
+
+                будет удалено из вашей медиатеки.
+                Это действие нельзя отменить.
+            </p>
+
+            <div class="delete-modal-actions">
+                <button
+                    id="delete-modal-cancel"
+                    class="delete-modal-cancel"
+                    type="button"
+                >
+                    Отмена
+                </button>
+
+                <button
+                    id="delete-modal-confirm"
+                    class="delete-modal-confirm"
+                    type="button"
+                >
+                    Удалить
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <script
+        src="{{ url_for(
+            'static',
+            filename='media-tabs.js'
+        ) }}"
+    ></script>
+
+    <script>
+    function formatRating(value) {
+        if (value === 0) {
+            return "Без оценки";
+        }
+
+        const formattedValue = Number.isInteger(value)
+            ? String(value)
+            : value.toFixed(1).replace(".", ",");
+
+        return `${formattedValue} из 5`;
+    }
+
+    const readonlyRatingFills =
+        document.querySelectorAll(
+            ".readonly-stars-fill"
+        );
+
+
+    readonlyRatingFills.forEach((fill) => {
+        const percent = Number(
+            fill.dataset.ratingPercent
+        );
+
+        fill.style.width = `${percent}%`;
+    });
+
+
+    const starWidgets = document.querySelectorAll(
+        ".star-rating"
+    );
+
+
+    starWidgets.forEach((widget) => {
+        const control = widget.querySelector(
+            ".star-rating-control"
+        );
+
+        const hiddenInput = widget.querySelector(
+            ".rating-hidden-input"
+        );
+
+        const stars = widget.querySelectorAll(
+            ".rating-star"
+        );
+
+        const ratingValue = widget.querySelector(
+            ".rating-value"
+        );
+
+        const clearButton = widget.querySelector(
+            ".rating-clear-button"
+        );
+
+        let selectedRating = hiddenInput.value
+            ? Number(hiddenInput.value) / 2
+            : 0;
+
+
+        function renderRating(value, animate = false) {
+            stars.forEach((star, index) => {
+                const starNumber = index + 1;
+
+                const fill = star.querySelector(
+                    ".rating-star-fill"
+                );
+
+                let fillPercent = 0;
+
+                if (value >= starNumber) {
+                    fillPercent = 100;
+                } else if (
+                    value >= starNumber - 0.5
+                ) {
+                    fillPercent = 50;
+                }
+
+                fill.style.width = `${fillPercent}%`;
+            });
+
+            ratingValue.textContent =
+                formatRating(value);
+
+            control.setAttribute(
+                "aria-valuenow",
+                String(value),
+            );
+
+            control.setAttribute(
+                "aria-valuetext",
+                formatRating(value),
+            );
+
+            if (animate) {
+                widget.classList.remove(
+                    "rating-animate"
+                );
+
+                void widget.offsetWidth;
+
+                widget.classList.add(
+                    "rating-animate"
+                );
+            }
+        }
+
+
+        function getRatingFromPointer(event) {
+            const star = event.target.closest(
+                ".rating-star"
+            );
+
+            if (!star) {
+                return selectedRating;
+            }
+
+            const starNumber = Number(
+                star.dataset.star
+            );
+
+            const rectangle =
+                star.getBoundingClientRect();
+
+            const isLeftHalf = (
+                event.clientX
+                < rectangle.left
+                + rectangle.width / 2
+            );
+
+            return isLeftHalf
+                ? starNumber - 0.5
+                : starNumber;
+        }
+
+
+        function setSelectedRating(
+            value,
+            notifyChange = false,
+        ) {
+            selectedRating = value;
+
+            hiddenInput.value = value === 0
+                ? ""
+                : String(Math.round(value * 2));
+
+            renderRating(value, true);
+
+            if (notifyChange) {
+                hiddenInput.dispatchEvent(
+                    new Event(
+                        "change",
+                        { bubbles: true },
+                    )
+                );
+            }
+        }
+
+
+        widget.setStoredRating = (storedRating) => {
+            const starsValue = storedRating
+                ? Number(storedRating) / 2
+                : 0;
+
+            selectedRating = starsValue;
+            hiddenInput.value = storedRating || "";
+
+            renderRating(starsValue);
+        };
+
+
+        control.addEventListener(
+            "pointermove",
+            (event) => {
+                renderRating(
+                    getRatingFromPointer(event)
+                );
+            },
+        );
+
+
+        control.addEventListener(
+            "pointerleave",
+            () => {
+                renderRating(selectedRating);
+            },
+        );
+
+
+        control.addEventListener(
+            "click",
+            (event) => {
+                setSelectedRating(
+                    getRatingFromPointer(event),
+                    true,
+                );
+            },
+        );
+
+
+        control.addEventListener(
+            "keydown",
+            (event) => {
+                let newRating = selectedRating;
+
+                if (
+                    event.key === "ArrowRight"
+                    || event.key === "ArrowUp"
+                ) {
+                    newRating = Math.min(
+                        5,
+                        selectedRating + 0.5,
+                    );
+                } else if (
+                    event.key === "ArrowLeft"
+                    || event.key === "ArrowDown"
+                ) {
+                    newRating = Math.max(
+                        0,
+                        selectedRating - 0.5,
+                    );
+                } else if (event.key === "Home") {
+                    newRating = 0;
+                } else if (event.key === "End") {
+                    newRating = 5;
+                } else {
+                    return;
+                }
+
+                event.preventDefault();
+
+                setSelectedRating(
+                    newRating,
+                    true,
+                );
+            },
+        );
+
+
+        clearButton.addEventListener(
+            "click",
+            () => {
+                setSelectedRating(0, true);
+            },
+        );
+
+
+        renderRating(selectedRating);
+    });
+
+
+    const updateForms = document.querySelectorAll(
+        ".library-update-form"
+    );
+
+
+    updateForms.forEach((form) => {
+        const card = form.closest(".media-card");
+
+        const viewMode = card.querySelector(
+            ".library-view-mode"
+        );
+
+        const editButton = card.querySelector(
+            ".library-edit-button"
+        );
+
+        const saveButton = form.querySelector(
+            ".library-save-button"
+        );
+
+        const cancelButton = form.querySelector(
+            ".library-cancel-button"
+        );
+
+        const statusSelect = form.querySelector(
+            'select[name="status"]'
+        );
+
+        const ratingInput = form.querySelector(
+            ".rating-hidden-input"
+        );
+
+        const starWidget = form.querySelector(
+            ".star-rating"
+        );
+
+        const statusText = card.querySelector(
+            ".library-status-text"
+        );
+
+        const ratingText = card.querySelector(
+            ".library-rating-text"
+        );
+
+        const readonlyFill = card.querySelector(
+            ".readonly-stars-fill"
+        );
+
+        const readonlyStars = card.querySelector(
+            ".readonly-stars"
+        );
+
+
+        function hasChanges() {
+            return (
+                statusSelect.value
+                !== form.dataset.originalStatus
+                ||
+                ratingInput.value
+                !== form.dataset.originalRating
+            );
+        }
+
+
+        function updateSaveButton() {
+            saveButton.hidden = !hasChanges();
+        }
+
+
+        function openEditor() {
+            card.classList.add("is-editing");
+            viewMode.classList.add("is-hidden");
+            form.classList.remove("is-hidden");
+
+            updateSaveButton();
+        }
+
+
+        function closeEditor() {
+            card.classList.remove("is-editing");
+            form.classList.add("is-hidden");
+            viewMode.classList.remove("is-hidden");
+        }
+
+
+        editButton.addEventListener(
+            "click",
+            () => {
+                openEditor();
+            },
+        );
+
+
+        form.addEventListener(
+            "change",
+            () => {
+                updateSaveButton();
+            },
+        );
+
+
+        cancelButton.addEventListener(
+            "click",
+            () => {
+                statusSelect.value =
+                    form.dataset.originalStatus;
+
+                starWidget.setStoredRating(
+                    form.dataset.originalRating
+                );
+
+                saveButton.hidden = true;
+
+                closeEditor();
+            },
+        );
+
+
+        form.addEventListener(
+            "submit",
+            async (event) => {
+                event.preventDefault();
+
+                if (!hasChanges()) {
+                    return;
+                }
+
+                saveButton.disabled = true;
+                saveButton.classList.add("is-loading");
+                saveButton.textContent = "Сохраняем...";
+
+                try {
+                    const response = await fetch(
+                        form.action,
+                        {
+                            method: "POST",
+                            credentials: "same-origin",
+                            headers: {
+                                "X-Requested-With":
+                                    "XMLHttpRequest",
+                            },
+                            body: new FormData(form),
+                        },
+                    );
+
+                    let data;
+
+                    try {
+                        data = await response.json();
+                    } catch {
+                        throw new Error(
+                            "Сервер вернул "
+                            + "некорректный ответ."
+                        );
+                    }
+
+                    if (
+                        response.status === 401
+                        && data.login_url
+                    ) {
+                        window.location.href =
+                            data.login_url;
+
+                        return;
+                    }
+
+                    if (!response.ok || !data.success) {
+                        throw new Error(
+                            data.message
+                            || "Не удалось сохранить."
+                        );
+                    }
+
+                    const storedRating =
+                        data.rating === null
+                            ? ""
+                            : String(data.rating);
+
+                    form.dataset.originalStatus =
+                        data.status;
+
+                    form.dataset.originalRating =
+                        storedRating;
+
+                    statusText.textContent =
+                        data.status_name;
+
+                    const ratingStars = data.rating
+                        ? data.rating / 2
+                        : 0;
+
+                    ratingText.textContent =
+                        formatRating(ratingStars);
+
+                    readonlyFill.style.width = (
+                        `${(data.rating || 0) * 10}%`
+                    );
+
+                    readonlyStars.setAttribute(
+                        "aria-label",
+                        formatRating(ratingStars),
+                    );
+
+                    saveButton.classList.remove(
+                        "is-loading"
+                    );
+
+                    saveButton.classList.add(
+                        "is-success"
+                    );
+
+                    saveButton.textContent =
+                        "Сохранено ✓";
+
+                    showToast(
+                        data.message,
+                        "success",
+                    );
+
+                    window.setTimeout(() => {
+                        saveButton.disabled = false;
+
+                        saveButton.classList.remove(
+                            "is-success"
+                        );
+
+                        saveButton.textContent =
+                            "Сохранить изменения";
+
+                        saveButton.hidden = true;
+
+                        closeEditor();
+                    }, 900);
+                } catch (error) {
+                    saveButton.disabled = false;
+
+                    saveButton.classList.remove(
+                        "is-loading"
+                    );
+
+                    saveButton.textContent =
+                        "Сохранить изменения";
+
+                    showToast(
+                        error.message,
+                        "error",
+                    );
+                }
+            },
+        );
+    });
+
+const deleteButtons = document.querySelectorAll(
+    ".library-delete-icon"
+);
+
+const deleteModal = document.getElementById(
+    "delete-modal"
+);
+
+const deleteModalTitle = document.getElementById(
+    "delete-modal-item-title"
+);
+
+const deleteModalClose = document.getElementById(
+    "delete-modal-close"
+);
+
+const deleteModalCancel = document.getElementById(
+    "delete-modal-cancel"
+);
+
+const deleteModalConfirm = document.getElementById(
+    "delete-modal-confirm"
+);
+
+
+let pendingDeleteButton = null;
+let deletionInProgress = false;
+
+
+function openDeleteModal(button) {
+    pendingDeleteButton = button;
+
+    deleteModalTitle.textContent =
+        button.dataset.title;
+
+    deleteModal.classList.remove(
+        "is-hidden",
+        "is-closing",
+    );
+
+    deleteModal.setAttribute(
+        "aria-hidden",
+        "false",
+    );
+
+    document.body.classList.add(
+        "modal-open"
+    );
+
+    window.setTimeout(() => {
+        deleteModalCancel.focus();
+    }, 50);
+}
+
+
+function closeDeleteModal(
+    restoreFocus = true,
+) {
+    if (deletionInProgress) {
+        return;
+    }
+
+    const previousButton =
+        pendingDeleteButton;
+
+    deleteModal.classList.add(
+        "is-closing"
+    );
+
+    window.setTimeout(() => {
+        deleteModal.classList.add(
+            "is-hidden"
+        );
+
+        deleteModal.classList.remove(
+            "is-closing"
+        );
+
+        deleteModal.setAttribute(
+            "aria-hidden",
+            "true",
+        );
+
+        document.body.classList.remove(
+            "modal-open"
+        );
+
+        pendingDeleteButton = null;
+
+        if (
+            restoreFocus
+            && previousButton
+        ) {
+            previousButton.focus();
+        }
+    }, 180);
+}
+
+
+deleteButtons.forEach((button) => {
+    button.addEventListener(
+        "click",
+        () => {
+            openDeleteModal(button);
+        },
+    );
+});
+
+
+deleteModalCancel.addEventListener(
+    "click",
+    () => {
+        closeDeleteModal();
+    },
+);
+
+
+deleteModalClose.addEventListener(
+    "click",
+    () => {
+        closeDeleteModal();
+    },
+);
+
+
+// Закрытие при нажатии на затемнённую область
+deleteModal.addEventListener(
+    "click",
+    (event) => {
+        if (event.target === deleteModal) {
+            closeDeleteModal();
+        }
+    },
+);
+
+
+// Закрытие клавишей Escape
+document.addEventListener(
+    "keydown",
+    (event) => {
+        if (
+            event.key === "Escape"
+            && !deleteModal.classList.contains(
+                "is-hidden"
+            )
+        ) {
+            closeDeleteModal();
+        }
+    },
+);
+
+
+deleteModalConfirm.addEventListener(
+    "click",
+    async () => {
+        if (
+            !pendingDeleteButton
+            || deletionInProgress
+        ) {
+            return;
+        }
+
+        const button = pendingDeleteButton;
+
+        const card = button.closest(
+            ".library-card"
+        );
+
+        deletionInProgress = true;
+
+        deleteModalConfirm.disabled = true;
+        deleteModalCancel.disabled = true;
+        deleteModalClose.disabled = true;
+
+        deleteModalConfirm.classList.add(
+            "is-deleting"
+        );
+
+        deleteModalConfirm.textContent =
+            "Удаляем...";
+
+        button.disabled = true;
+        button.classList.add("is-deleting");
+
+        try {
+            const response = await fetch(
+                button.dataset.deleteUrl,
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "X-Requested-With":
+                            "XMLHttpRequest",
+                    },
+                },
+            );
+
+            let data;
+
+            try {
+                data = await response.json();
+            } catch {
+                throw new Error(
+                    "Сервер вернул некорректный ответ."
+                );
+            }
+
+            if (
+                response.status === 401
+                && data.login_url
+            ) {
+                window.location.href =
+                    data.login_url;
+
+                return;
+            }
+
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data.message
+                    || "Не удалось удалить произведение."
+                );
+            }
+
+            // Разрешаем закрыть окно после ответа
+            deletionInProgress = false;
+
+            closeDeleteModal(false);
+
+            showToast(
+                data.message,
+                "success",
+            );
+
+            card.classList.add(
+                "is-removing"
+            );
+
+            window.setTimeout(() => {
+                card.remove();
+
+                showEmptyLibraryIfNeeded();
+            }, 350);
+        } catch (error) {
+            deletionInProgress = false;
+
+            closeDeleteModal(false);
+
+            button.disabled = false;
+
+            button.classList.remove(
+                "is-deleting"
+            );
+
+            showToast(
+                error.message,
+                "error",
+            );
+        } finally {
+            deleteModalConfirm.disabled = false;
+            deleteModalCancel.disabled = false;
+            deleteModalClose.disabled = false;
+
+            deleteModalConfirm.classList.remove(
+                "is-deleting"
+            );
+
+            deleteModalConfirm.textContent =
+                "Удалить";
+        }
+    },
+);
+
+
+function showEmptyLibraryIfNeeded() {
+    const grid = document.getElementById(
+        "library-grid"
+    );
+
+    const remainingCards = grid.querySelectorAll(
+        ".library-card"
+    );
+
+    if (remainingCards.length > 0) {
+        return;
+    }
+
+    const emptyState =
+        document.createElement("div");
+
+    emptyState.className = "empty-state";
+
+    const heading =
+        document.createElement("h2");
+
+    heading.textContent =
+        "Медиатека пока пуста";
+
+    const description =
+        document.createElement("p");
+
+    description.textContent =
+        "Перейдите в каталог и добавьте "
+        + "первое произведение.";
+
+    const catalogLink =
+        document.createElement("a");
+
+    catalogLink.className =
+        "media-action-link";
+
+    catalogLink.href =
+        grid.dataset.catalogUrl;
+
+    catalogLink.textContent =
+        "Открыть каталог";
+
+    emptyState.append(
+        heading,
+        description,
+        catalogLink,
+    );
+
+    grid.appendChild(emptyState);
+}
+
+    function showToast(message, category) {
+        const container = document.getElementById(
+            "toast-container"
+        );
+
+        const notification =
+            document.createElement("div");
+
+        notification.className = (
+            "flash-message "
+            + `flash-${category} `
+            + "toast-message"
+        );
+
+        notification.textContent = message;
+
+        container.appendChild(notification);
+
+        window.setTimeout(() => {
+            notification.classList.add("toast-hide");
+
+            window.setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }, 3500);
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Каталог — Watch&Read</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <a class="logo" href="{{ url_for('home') }}">
+                Watch&Read
+            </a>
+
+            <nav class="navigation">
+                <a href="{{ url_for('catalog') }}">Каталог</a>
+
+                {% if session.get("user_id") %}
+                    <a href="{{ url_for('library') }}">
+                        Моя медиатека
+                    </a>
+
+                    {% if session.get("role") == "admin" %}
+                        <a href="{{ url_for('admin') }}">
+                            Админ-панель
+                        </a>
+                    {% endif %}
+
+                    <span class="navigation-user">
+                        {{ session.get("username") }}
+                    </span>
+
+                    <a
+                        href="{{ url_for('logout') }}"
+                        onclick="return confirm('Вы уверены, что хотите выйти из аккаунта?');"
+                    >
+                        Выйти
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('login') }}">
+                        Войти
+                    </a>
+
+                    <a href="{{ url_for('register') }}">
+                        Регистрация
+                    </a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="toast-container" class="page-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+        <section id="catalog" class="catalog-page">
+            <div class="catalog-heading">
+                <p class="subtitle">Все истории в одном месте</p>
+                <h1>Каталог</h1>
+                <p>
+                    Выберите вид медиа и жанр — остальное мы уже
+                    собрали для вас.
+                </p>
+            </div>
+            <div class="media-filter-toolbar">
+                <div
+                    class="media-tabs"
+                    data-media-tabs
+                    data-grid-id="catalog-grid"
+                    data-empty-id="catalog-filter-empty"
+                >
+                    <div
+                        class="media-tabs-list"
+                        role="tablist"
+                        aria-label="Категории каталога"
+                    >
+                        {% for media_type, label in media_type_filters %}
+                            <button
+                                id="catalog-tab-{{ media_type }}"
+                                class="media-tab"
+                                type="button"
+                                role="tab"
+                                aria-controls="catalog-grid"
+                                aria-selected="{{ 'true' if media_type == 'all' else 'false' }}"
+                                tabindex="{{ '0' if media_type == 'all' else '-1' }}"
+                                data-media-filter="{{ media_type }}"
+                            >
+                                {{ label }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="genre-filter">
+                    <label for="catalog-genre-filter">
+                        Жанр
+                    </label>
+
+                    <select
+                        id="catalog-genre-filter"
+                        data-genre-filter
+                    >
+                        <option value="all">
+                            Все жанры
+                        </option>
+
+                        {% for genre in genre_filters %}
+                            <option value="{{ genre }}">
+                                {{ genre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div
+                id="catalog-grid"
+                class="media-grid media-grid-filterable"
+                role="tabpanel"
+                aria-labelledby="catalog-tab-all"
+            >
+                {% for item in media_items %}
+                    <article
+                        class="media-card"
+                        data-media-type="{{ item.media_type }}"
+                        data-media-genre="{{ item.genre or '' }}"
+                    >
+                        <div class="cover">
+                            {% if item.cover_filename %}
+                                <img
+                                    src="{{ url_for(
+                                        'static',
+                                        filename='covers/' ~ item.cover_filename
+                                    ) }}"
+                                    alt=""
+                                    width="600"
+                                    height="900"
+                                    loading="lazy"
+                                >
+                            {% else %}
+                                <span>Обложка скоро появится</span>
+                            {% endif %}
+                        </div>
+
+                        <p class="media-type">
+                            {{ item.media_type_name }}
+                        </p>
+
+                        <h3>{{ item.title }}</h3>
+
+                        <p>
+                            {% if item.genre %}
+                                {{ item.genre }}
+                            {% else %}
+                                Жанр не указан
+                            {% endif %}
+
+                            ·
+
+                            {% if item.release_year %}
+                                {{ item.release_year }}
+                            {% else %}
+                                Год не указан
+                            {% endif %}
+                        </p>
+
+                        {% if item.description %}
+                            <p>{{ item.description }}</p>
+                        {% endif %}
+
+                        <div class="media-actions">
+                            {% if session.get("user_id") %}
+                                {% if item.id in library_media_ids %}
+                                    <a
+                                        class="media-action-link secondary"
+                                        href="{{ url_for('library') }}"
+                                    >
+                                        Уже в медиатеке
+                                    </a>
+                                {% else %}
+                                    <form
+                                        class="add-to-library-form"
+                                        method="post"
+                                        action="{{ url_for(
+                                            'add_to_library',
+                                            media_id=item.id
+                                        ) }}"
+                                    >
+                                        <button
+                                            class="media-action-button"
+                                            type="submit"
+                                        >
+                                            Добавить в медиатеку
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            {% else %}
+                                <a
+                                    class="media-action-link"
+                                    href="{{ url_for('login') }}"
+                                >
+                                    Войдите, чтобы добавить
+                                </a>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% else %}
+                     <div class="empty-state">
+                         <h3>В каталоге пока нет произведений</h3>
+
+                          <p>
+                               Новые фильмы, сериалы и книги появятся здесь.
+                         </p>
+                    </div>
+                {% endfor %}
+                    <p
+                        id="catalog-filter-empty"
+                        class="media-filter-empty is-hidden"
+                        role="status"
+                    ></p>
+            </div>
+        </section>
+    </main>
+
+    <script
+        src="{{ url_for(
+            'static',
+            filename='media-tabs.js'
+        ) }}"
+    ></script>
+
+    <script>
+        const addForms = document.querySelectorAll(
+            ".add-to-library-form"
+        );
+
+        addForms.forEach((form) => {
+            form.addEventListener("submit", async (event) => {
+                // Запрещаем обычную отправку формы и перезагрузку
+                event.preventDefault();
+
+                const button = form.querySelector(
+                    ".media-action-button"
+                );
+
+                if (button.disabled) {
+                    return;
+                }
+
+                button.disabled = true;
+                button.classList.add("is-loading");
+                button.textContent = "Добавляем...";
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: "POST",
+                        credentials: "same-origin",
+                        headers: {
+                            "X-Requested-With": "XMLHttpRequest",
+                        },
+                    });
+
+                    let data;
+
+                    try {
+                        data = await response.json();
+                    } catch {
+                        throw new Error(
+                            "Сервер вернул некорректный ответ."
+                        );
+                    }
+
+                    if (response.status === 401 && data.login_url) {
+                        window.location.href = data.login_url;
+                        return;
+                    }
+
+                    if (!response.ok || !data.success) {
+                        throw new Error(
+                            data.message
+                            || "Не удалось добавить произведение."
+                        );
+                    }
+
+                    button.classList.remove("is-loading");
+                    button.classList.add("is-success");
+                    button.textContent = "Добавлено ✓";
+
+                    showToast(data.message, "success");
+
+                    window.setTimeout(() => {
+                        const addedLabel =
+                            document.createElement("span");
+
+                        addedLabel.className =
+                            "media-action-link secondary";
+
+                        addedLabel.textContent =
+                            "Уже в медиатеке";
+
+                        form.replaceWith(addedLabel);
+                    }, 700);
+                } catch (error) {
+                    button.disabled = false;
+                    button.classList.remove("is-loading");
+                    button.textContent =
+                        "Добавить в медиатеку";
+
+                    showToast(
+                        error.message,
+                        "error",
+                    );
+                }
+            });
+        });
+
+
+        function showToast(message, category) {
+            const container = document.getElementById(
+                "toast-container"
+            );
+
+            const notification =
+                document.createElement("div");
+
+            notification.className = (
+                "flash-message "
+                + `flash-${category} `
+                + "toast-message"
+            );
+
+            notification.textContent = message;
+
+            container.appendChild(notification);
+
+            window.setTimeout(() => {
+                notification.classList.add("toast-hide");
+
+                window.setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3500);
+        }
+    </script>
+</body>
+</html>

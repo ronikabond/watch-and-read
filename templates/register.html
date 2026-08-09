@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Регистрация — Watch&Read</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <a class="logo" href="{{ url_for('home') }}">
+                Watch&Read
+            </a>
+
+            <nav class="navigation">
+                <a href="{{ url_for('catalog') }}">Каталог</a>
+                <a href="{{ url_for('login') }}">Войти</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container auth-page">
+        <section class="auth-card">
+            <p class="subtitle">Новый аккаунт</p>
+            <h1>Регистрация</h1>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="post">
+                <div class="form-group">
+                    <label for="username">Имя пользователя</label>
+
+                    <input
+                        id="username"
+                        name="username"
+                        type="text"
+                        minlength="3"
+                        maxlength="50"
+                        value="{{ username or '' }}"
+                        autocomplete="username"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Электронная почта</label>
+
+                    <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        maxlength="120"
+                        value="{{ email or '' }}"
+                        autocomplete="email"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Пароль</label>
+
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        minlength="8"
+                        autocomplete="new-password"
+                        required
+                    >
+
+                    <small>Минимум 8 символов</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="password_confirm">
+                        Повтори пароль
+                    </label>
+
+                    <input
+                        id="password_confirm"
+                        name="password_confirm"
+                        type="password"
+                        minlength="8"
+                        autocomplete="new-password"
+                        required
+                    >
+                </div>
+
+                <button type="submit">
+                    Создать аккаунт
+                </button>
+            </form>
+
+            <p class="auth-link">
+                Уже зарегистрированы?
+                <a href="{{ url_for('login') }}">Войти</a>
+            </p>
+        </section>
+    </main>
+</body>
+</html>

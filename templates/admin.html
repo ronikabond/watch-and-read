@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Панель администратора — Watch&Read</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <a
+                class="logo"
+                href="{{ url_for('home') }}"
+            >
+                Watch&Read
+            </a>
+
+            <nav class="navigation">
+                <a href="{{ url_for('home') }}">
+                    Каталог
+                </a>
+
+                <a href="{{ url_for('library') }}">
+                    Моя медиатека
+                </a>
+
+                {% if session.get("role") == "admin" %}
+                    <a href="{{ url_for('admin') }}">
+                        Админ-панель
+                    </a>
+                {% endif %}
+                <span class="navigation-user">
+                    {{ session.get("username") }}
+                </span>
+
+                <a
+                    href="{{ url_for('logout') }}"
+                    onclick="return confirm(
+                        'Вы уверены, что хотите выйти из аккаунта?'
+                    );"
+                >
+                    Выйти
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container admin-page">
+        <div class="page-messages">
+            {% with messages = get_flashed_messages(
+                with_categories=true
+            ) %}
+                {% for category, message in messages %}
+                    <div
+                        class="flash-message flash-{{ category }}"
+                    >
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endwith %}
+        </div>
+
+        <section class="library-heading">
+            <p class="subtitle">
+                Управление сайтом
+            </p>
+
+            <h1>Панель администратора</h1>
+
+            <p>
+                Здесь администратор сможет управлять
+                произведениями общего каталога.
+            </p>
+        </section>
+
+        <section class="admin-panel">
+            <div class="admin-section-heading">
+                <div>
+                    <p class="subtitle">Новое произведение</p>
+                    <h2>Добавить в каталог</h2>
+                </div>
+            </div>
+
+            <form
+                class="admin-media-form"
+                action="{{ url_for('admin_add_media') }}"
+                method="post"
+            >
+                <div class="admin-form-grid">
+                    <div class="admin-form-group">
+                        <label for="title">
+                            Название
+                        </label>
+
+                        <input
+                            id="title"
+                            name="title"
+                            type="text"
+                            maxlength="255"
+                            required
+                        >
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="media-type">
+                            Тип
+                        </label>
+
+                        <select
+                            id="media-type"
+                            name="media_type"
+                            required
+                        >
+                            {% for media_type, label
+                            in media_type_options.items() %}
+                                <option value="{{ media_type }}">
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="genre">
+                            Жанр
+                        </label>
+
+                        <input
+                            id="genre"
+                            name="genre"
+                            type="text"
+                            maxlength="255"
+                            required
+                        >
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label for="release-year">
+                            Год выпуска
+                        </label>
+
+                        <input
+                            id="release-year"
+                            name="release_year"
+                            type="number"
+                            min="1"
+                            max="2100"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="admin-form-group">
+                    <label for="description">
+                        Описание
+                    </label>
+
+                    <textarea
+                        id="description"
+                        name="description"
+                        rows="5"
+                        required
+                    ></textarea>
+                </div>
+
+                <button
+                    class="admin-submit-button"
+                    type="submit"
+                >
+                    Добавить произведение
+                </button>
+            </form>
+        </section>
+
+        <section class="admin-catalog">
+            <div class="admin-section-heading">
+                <div>
+                    <p class="subtitle">Общий каталог</p>
+                    <h2>Произведения</h2>
+                </div>
+
+                <span class="admin-item-count">
+                    Всего: {{ media_items|length }}
+                </span>
+            </div>
+
+            {% if media_items %}
+                <div class="admin-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">ID</th>
+                                <th scope="col">Произведение</th>
+                                <th scope="col">Тип</th>
+                                <th scope="col">Жанр</th>
+                                <th scope="col">Год</th>
+                                <th scope="col">В медиатеках</th>
+                                <th scope="col">Действия</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for item in media_items %}
+                                <tr>
+                                    <td>
+                                        #{{ item.id }}
+                                    </td>
+
+                                    <td class="admin-title-cell">
+                                        <strong>
+                                            {{ item.title }}
+                                        </strong>
+
+                                        <span class="admin-description">
+                                            {{ item.description }}
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        {{ item.media_type_name }}
+                                    </td>
+
+                                    <td>
+                                        {{ item.genre }}
+                                    </td>
+
+                                    <td>
+                                        {{ item.release_year }}
+                                    </td>
+
+                                    <td>
+                                        {{ item.library_count }}
+                                    </td>
+
+                                    <td>
+                                        <td>
+                                            <div class="admin-actions">
+                                                <a
+                                                    class="admin-edit-button"
+                                                    href="{{ url_for(
+                                                        'admin_edit_media',
+                                                        media_id=item.id
+                                                    ) }}"
+                                                >
+                                                    Редактировать
+                                                </a>
+
+                                                <form
+                                                    action="{{ url_for(
+                                                        'admin_delete_media',
+                                                        media_id=item.id
+                                                    ) }}"
+                                                    method="post"
+                                                    onsubmit="
+                                                        return confirm(
+                                                            'Удалить произведение '
+                                                            + 'из общего каталога? '
+                                                            + 'Оно исчезнет из медиатек '
+                                                            + 'всех пользователей.'
+                                                        );
+                                                    "
+                                                >
+                                                    <button
+                                                        class="admin-delete-button"
+                                                        type="submit"
+                                                    >
+                                                        Удалить
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <h2>Каталог пока пуст</h2>
+
+                    <p>
+                        Добавьте первое произведение через форму выше.
+                    </p>
+                </div>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>
